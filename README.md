@@ -12,19 +12,19 @@
 
 **macOS / Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EolaFam1828/Blacksmith-Claude/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/EolaFam1828/Blacksmith/main/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/EolaFam1828/Blacksmith-Claude/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/EolaFam1828/Blacksmith/main/install.ps1 | iex
 ```
 
 ### Manual Install
 
 ```bash
-git clone https://github.com/EolaFam1828/Blacksmith-Claude.git
-cd Blacksmith-Claude
+git clone https://github.com/EolaFam1828/Blacksmith.git
+cd Blacksmith
 npm install
 npm link
 blacksmith brain init
