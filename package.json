@@ -1,0 +1,23 @@
+{
+  "name": "blacksmith-cli",
+  "version": "0.1.0",
+  "description": "Blacksmith CLI: agents that build agents.",
+  "type": "module",
+  "bin": {
+    "blacksmith": "./bin/blacksmith.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "lint": "node --check ./bin/blacksmith.js"
+  },
+  "engines": {
+    "node": ">=25"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.1",
+    "ora": "^9.3.0",
+    "yaml": "^2.8.1"
+  }
+}
