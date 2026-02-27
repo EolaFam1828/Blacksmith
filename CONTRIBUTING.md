@@ -6,8 +6,8 @@ Thank you for your interest in contributing to Blacksmith! This guide will help 
 
 ```bash
 # Clone the repository
-git clone https://github.com/EolaFam1828/Blacksmith-Claude.git
-cd Blacksmith-Claude
+git clone https://github.com/EolaFam1828/Blacksmith.git
+cd Blacksmith
 
 # Install dependencies (requires Node.js >= 25)
 npm install
