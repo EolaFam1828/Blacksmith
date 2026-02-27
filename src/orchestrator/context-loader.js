@@ -10,6 +10,81 @@ const safeRead = async (filePath) => {
   }
 };
 
+const estimateTokens = (text) => Math.ceil((text || "").length / 4);
+
+const FIELD_PRIORITY = [
+  "blame",
+  "recentChanges",
+  "prDiff",
+  "stagedDiff",
+  "packageJson",
+  "files"
+];
+
+const estimateContextTokens = (ctx) => {
+  let total = 0;
+  for (const file of ctx.files || []) {
+    total += estimateTokens(file.content);
+  }
+  total += estimateTokens(ctx.stagedDiff);
+  total += estimateTokens(ctx.prDiff);
+  total += estimateTokens(ctx.packageJson);
+  total += estimateTokens(ctx.recentChanges);
+  for (const val of Object.values(ctx.blame || {})) {
+    total += estimateTokens(val);
+  }
+  return total;
+};
+
+const truncateFiles = (files, tokensToFree) => {
+  if (!files || files.length === 0) return files;
+  const result = [...files];
+  let freed = 0;
+  for (let i = result.length - 1; i >= 0 && freed < tokensToFree; i--) {
+    const tokens = estimateTokens(result[i].content);
+    if (tokens === 0) continue;
+    const remainingToFree = tokensToFree - freed;
+    if (tokens <= remainingToFree) {
+      freed += tokens;
+      result[i] = { ...result[i], content: null };
+    } else {
+      const charsToKeep = (tokens - remainingToFree) * 4;
+      result[i] = { ...result[i], content: result[i].content.slice(0, charsToKeep) };
+      freed = tokensToFree;
+    }
+  }
+  return result;
+};
+
+export const truncateContext = (context, maxTokens) => {
+  if (!maxTokens || maxTokens <= 0) return context;
+
+  const totalTokens = estimateContextTokens(context);
+  if (totalTokens <= maxTokens) return context;
+
+  const truncated = { ...context };
+  let current = totalTokens;
+
+  for (const field of FIELD_PRIORITY) {
+    if (current <= maxTokens) break;
+
+    if (field === "files") {
+      truncated.files = truncateFiles(truncated.files, current - maxTokens);
+    } else if (field === "blame") {
+      if (truncated.blame && Object.keys(truncated.blame).length > 0) {
+        truncated.blame = {};
+      }
+    } else if (truncated[field]) {
+      truncated[field] = null;
+    }
+    current = estimateContextTokens(truncated);
+  }
+
+  return truncated;
+};
+
+export { estimateTokens, estimateContextTokens };
+
 export const loadContext = async ({ cwd, filePaths = [], reviewStaged = false, prNumber = null }) => {
   const files = await Promise.all(
     filePaths.map(async (filePath) => {

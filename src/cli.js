@@ -386,6 +386,18 @@ export const buildProgram = () => {
     print(formatYaml(result));
   });
 
+  brain.command("embed").description("Index all notebooks for semantic search").action(async () => {
+    const { embedBrainNotebooks } = await import("./brain/index.js");
+    const result = await embedBrainNotebooks();
+    print(formatYaml(result));
+  });
+
+  brain.command("search").argument("<query...>").description("Semantic search across notebooks").action(async (queryParts) => {
+    const { semanticSearch } = await import("./brain/index.js");
+    const results = await semanticSearch(collectTask(queryParts));
+    print(formatYaml(results));
+  });
+
   const identity = program.command("identity").description("Inspect the parsed Blacksmith identity");
   identity.option("--departments").option("--department <name>").option("--owner").action(async (options) => {
     const parsed = await getIdentity();

@@ -26,6 +26,7 @@ export const ensureBlacksmithHome = async () => {
   const reportsDir = path.join(BLACKSMITH_HOME, "reports");
   const archivesDir = path.join(BLACKSMITH_HOME, "archives");
   const profilesDir = path.join(BLACKSMITH_HOME, "profiles");
+  const vectorIndexDir = path.join(BLACKSMITH_HOME, "vector-index");
 
   await fs.mkdir(BLACKSMITH_HOME, { recursive: true });
   await fs.mkdir(notebooksDir, { recursive: true });
@@ -34,6 +35,7 @@ export const ensureBlacksmithHome = async () => {
   await fs.mkdir(reportsDir, { recursive: true });
   await fs.mkdir(archivesDir, { recursive: true });
   await fs.mkdir(profilesDir, { recursive: true });
+  await fs.mkdir(vectorIndexDir, { recursive: true });
 
   await writeIfMissing(path.join(BLACKSMITH_HOME, "config.yaml"), DEFAULT_CONFIG);
   await writeIfMissing(path.join(BLACKSMITH_HOME, "mcr.yaml"), DEFAULT_MCR);

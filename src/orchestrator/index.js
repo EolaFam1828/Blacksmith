@@ -10,10 +10,10 @@ import { createTaskWorktree, removeTaskWorktree, isGitRepository } from "../util
 import { loadConfig } from "../utils/config.js";
 import { classifyTask } from "./classifier.js";
 import { assembleAgentSpec, renderAgentPrompt } from "./agent-assembler.js";
-import { loadContext } from "./context-loader.js";
+import { loadContext, truncateContext } from "./context-loader.js";
 import { estimateCost } from "./cost-estimator.js";
 import { withSpinner } from "../utils/spinner.js";
-import { shouldEscalate as checkEscalation, escalate } from "./escalation.js";
+import { shouldEscalate as checkEscalation, getEscalationTarget, escalate, judgeResponse } from "./escalation.js";
 import { generateStepsForCommand, isMultiStepCommand } from "./workflows.js";
 import { runBackend } from "../backends/index.js";
 import { confirmAction } from "../utils/prompt.js";
@@ -51,36 +51,7 @@ const resolveRuntimeModelName = ({ backend, model, config, explicitModel }) => {
   return explicitModel || undefined;
 };
 
-const getEscalationPath = (model) => {
-  switch (model) {
-    case "ollama-qwen2.5-coder":
-      return "gemini-2.0-flash";
-    case "ollama-deepseek-r1":
-      return "o3-mini";
-    case "ollama-llama-3.3-70b":
-      return "gemini-2.0-pro";
-    case "gemini-2.0-flash":
-      return "gemini-2.0-pro";
-    case "gpt-4o-mini":
-      return "gpt-4.5";
-    case "o3-mini":
-      return "o3";
-    case "claude-3.5-haiku":
-      return "claude-code";
-    case "codex-cli":
-      return "claude-code";
-    case "gemini-2.0-pro":
-      return "claude-code";
-    case "gpt-4.5":
-      return "claude-code";
-    case "o3":
-      return "claude-code";
-    default:
-      return null;
-  }
-};
-
-const shouldEscalate = ({ result, classification, config, explicitBackend, currentModel }) => {
+const shouldEscalateWithConfig = ({ result, classification, config, explicitBackend, currentModel }) => {
   if (!config.routing?.auto_escalate || explicitBackend) {
     return false;
   }
@@ -89,15 +60,7 @@ const shouldEscalate = ({ result, classification, config, explicitBackend, curre
     return false;
   }
 
-  if (classification.complexity === "high" && result.text.trim().length < 600) {
-    return true;
-  }
-
-  if (classification.complexity === "medium" && result.text.trim().length < 200) {
-    return true;
-  }
-
-  return false;
+  return checkEscalation(result, classification);
 };
 
 const chooseFallbackModel = ({ command, classification, explicitBackend, explicitModel }) => {
@@ -274,10 +237,11 @@ const runTierOne = async ({
     config,
     explicitModel
   });
-  const context =
+  const rawContext =
     command === "commit"
       ? await loadContext({ cwd, filePaths, reviewStaged: true })
       : { stagedDiff: null };
+  const context = truncateContext(rawContext, config.context?.max_context?.[backend]);
   const prompt = buildTierOnePrompt({
     command,
     task,
@@ -374,7 +338,10 @@ const runTierTwo = async ({
   const backend = explicitBackend || backendForModel(resolvedModel);
   let worktree = null;
   let executionCwd = cwd;
-  let context = await loadContext({ cwd: executionCwd, filePaths, reviewStaged, prNumber });
+  let context = truncateContext(
+    await loadContext({ cwd: executionCwd, filePaths, reviewStaged, prNumber }),
+    config.context?.max_context?.[backend]
+  );
   const spec = assembleAgentSpec({
     identity,
     classification,
@@ -429,7 +396,10 @@ const runTierTwo = async ({
     executionCwd = worktree?.path || cwd;
   }
   if (executionCwd !== cwd) {
-    context = await loadContext({ cwd: executionCwd, filePaths, reviewStaged, prNumber });
+    context = truncateContext(
+      await loadContext({ cwd: executionCwd, filePaths, reviewStaged, prNumber }),
+      config.context?.max_context?.[backend]
+    );
     await hydrateSession(session.id, context);
     spec.context.cwd = executionCwd;
     prompt = renderAgentPrompt({ spec, context, task });
@@ -516,33 +486,41 @@ const runTierTwo = async ({
       );
     }
 
-    if (shouldEscalate({ result, classification, config, explicitBackend, currentModel })) {
-      const escalatedModel = getEscalationPath(currentModel);
+    if (shouldEscalateWithConfig({ result, classification, config, explicitBackend, currentModel })) {
+      const escalatedModel = getEscalationTarget(currentModel);
       if (escalatedModel) {
-        const escalatedBackend = backendForModel(escalatedModel);
-        const escalatedResult = await withSpinner(`Escalating to ${escalatedModel}`, () =>
-          runPrimaryAgent({
-            backend: escalatedBackend,
-            model: escalatedModel,
-            prompt: `${prompt}\n\nPrevious attempt was insufficient. Return a stronger answer.`,
-            options: {
-              cwd: executionCwd,
-              modelName: resolveRuntimeModelName({
-                backend: escalatedBackend,
-                model: escalatedModel,
-                config,
-                explicitModel: null
-              })
-            }
-          })
-        );
-        result = {
-          ...escalatedResult,
-          text: `${escalatedResult.text}\n\n[Escalated from ${currentModel} to ${escalatedModel}]`
-        };
-        currentModel = escalatedModel;
-        currentBackend = escalatedBackend;
-        escalated = true;
+        const judgeVerdict = await judgeResponse(task, result, classification).catch(() => ({
+          shouldEscalate: false,
+          reason: "judge error",
+          confidence: 0
+        }));
+
+        if (judgeVerdict.shouldEscalate) {
+          const escalatedBackend = backendForModel(escalatedModel);
+          const escalatedResult = await withSpinner(`Escalating to ${escalatedModel}`, () =>
+            runPrimaryAgent({
+              backend: escalatedBackend,
+              model: escalatedModel,
+              prompt: `${prompt}\n\nPrevious attempt was insufficient. Return a stronger answer.`,
+              options: {
+                cwd: executionCwd,
+                modelName: resolveRuntimeModelName({
+                  backend: escalatedBackend,
+                  model: escalatedModel,
+                  config,
+                  explicitModel: null
+                })
+              }
+            })
+          );
+          result = {
+            ...escalatedResult,
+            text: `${escalatedResult.text}\n\n[Escalated from ${currentModel} to ${escalatedModel}]`
+          };
+          currentModel = escalatedModel;
+          currentBackend = escalatedBackend;
+          escalated = true;
+        }
       }
     }
     success = true;

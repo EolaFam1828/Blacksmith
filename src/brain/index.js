@@ -4,6 +4,7 @@ import { loadBrainRegistry, saveBrainRegistry } from "../utils/config.js";
 import { loadMcr } from "../utils/config.js";
 import { archiveNotebook, refreshBrainSources } from "./archive.js";
 import { routeBrainQuery } from "./router.js";
+import { searchIndex, indexAllNotebooks } from "./vector-store.js";
 
 const resolveNotebook = async (name) => {
   const registry = await loadBrainRegistry();
@@ -83,9 +84,34 @@ export const queryNotebook = async (name, query) => {
   };
 };
 
+const isLowQualityResult = (results) => {
+  if (!results || results.length === 0) return true;
+  return results.every((r) => {
+    const lines = r.excerpt.split("\n").filter(Boolean);
+    return lines.length <= 12 && !lines.some((line) => scoreMatches(r.query, line) > 0);
+  });
+};
+
 export const queryBrain = async (query, classification) => {
   const notebooks = routeBrainQuery(query, classification);
   const results = await Promise.all(notebooks.map((name) => queryNotebook(name, query)));
+
+  if (isLowQualityResult(results)) {
+    try {
+      const semanticResults = await searchIndex(query);
+      if (semanticResults.length > 0) {
+        return {
+          query,
+          notebooks,
+          results,
+          semanticResults
+        };
+      }
+    } catch {
+      // Semantic search unavailable (Ollama down, no index, etc.)
+    }
+  }
+
   return {
     query,
     notebooks,
@@ -185,3 +211,7 @@ export const addProjectNotebook = async (name) => {
 export const refreshBrain = async () => refreshBrainSources();
 
 export const archiveBrainNotebook = async (name) => archiveNotebook(name);
+
+export const embedBrainNotebooks = async () => indexAllNotebooks();
+
+export const semanticSearch = async (query) => searchIndex(query);

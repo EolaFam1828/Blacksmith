@@ -54,3 +54,23 @@ export const runOllamaPrompt = async (prompt, options = {}) => {
 };
 
 const estimateTokens = (value) => Math.ceil((value || "").length / 4);
+
+export const getOllamaEmbedding = async (text, options = {}) => {
+  const config = await loadConfig();
+  const model = options.model || "nomic-embed-text";
+  const host = config.backends?.ollama?.host || "http://localhost:11434";
+
+  const response = await fetch(new URL("/api/embeddings", host), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ model, prompt: text })
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Embedding failed: ${response.status} ${body}`);
+  }
+
+  const data = await response.json();
+  return data.embedding;
+};
