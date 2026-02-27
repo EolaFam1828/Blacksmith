@@ -95,7 +95,7 @@ const attachWorkflowCommand = (program, config) => {
 
 export const buildProgram = () => {
   const program = new Command();
-  program.name("blacksmith").description("Agents that build agents.").version("0.1.0");
+  program.name("blacksmith").description("Agents that build agents.").version("0.2.0");
 
   addCommonModelOptions(
     program.command("ask").description("Raw passthrough with deterministic routing"),

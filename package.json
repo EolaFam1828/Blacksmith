@@ -1,6 +1,6 @@
 {
   "name": "blacksmith-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Blacksmith CLI: agents that build agents.",
   "type": "module",
   "bin": {
@@ -13,11 +13,31 @@
   "engines": {
     "node": ">=25"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EolaFam1828/Blacksmith-Claude.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "agents",
+    "cli",
+    "orchestrator",
+    "llm",
+    "claude",
+    "gemini",
+    "ollama"
+  ],
   "dependencies": {
+    "@inkjs/ui": "^2.0.0",
     "better-sqlite3": "^12.6.2",
     "chalk": "^5.6.2",
     "commander": "^14.0.1",
+    "fuse.js": "^7.0.0",
+    "htm": "^3.1.1",
+    "ink": "^5.1.0",
     "ora": "^9.3.0",
+    "react": "^18.3.1",
     "yaml": "^2.8.1"
   }
 }
