@@ -5,6 +5,7 @@ import { getBlacksmithPath } from "../utils/paths.js";
 
 const REPORT_PATH = getBlacksmithPath("reports", "routing-performance.md");
 const SUGGESTIONS_PATH = getBlacksmithPath("reports", "orchestrator-suggestions.md");
+const LEARNED_PATTERNS_PATH = getBlacksmithPath("learned-patterns.json");
 
 export const analyzeRoutingPerformance = async () => {
   const db = await getLedgerDb();
@@ -64,6 +65,64 @@ export const writeRoutingReports = async (analysis) => {
   };
 };
 
+export const learnPatterns = async () => {
+  const db = await getLedgerDb();
+
+  const frequentRoutes = db.prepare(`
+    SELECT workflow, backend, model, COUNT(*) AS calls,
+           ROUND(AVG(duration_ms), 2) AS avg_duration_ms,
+           ROUND(SUM(estimated_cost), 6) AS total_cost,
+           SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) AS successes
+    FROM ledger_entries
+    GROUP BY workflow, backend, model
+    HAVING calls >= 5 AND successes = calls AND total_cost = 0
+    ORDER BY calls DESC
+  `).all();
+
+  const patterns = {};
+  for (const route of frequentRoutes) {
+    if (["raw_query", "commit_message"].includes(route.workflow)) continue;
+    const key = `${route.workflow}:low`;
+    patterns[key] = {
+      tier: 1,
+      passthrough: true,
+      reason: `Learned: ${route.calls} successful zero-cost calls on ${route.backend}`,
+      model: route.model,
+      backend: route.backend
+    };
+  }
+
+  await fs.writeFile(LEARNED_PATTERNS_PATH, JSON.stringify(patterns, null, 2), "utf8");
+  return patterns;
+};
+
+export const suggestOrchestratorUpdates = async () => {
+  const analysis = await analyzeRoutingPerformance();
+  const suggestions = [];
+
+  for (const row of analysis.rows) {
+    if (row.calls >= 10 && row.successes / row.calls > 0.95 && row.total_cost === 0) {
+      suggestions.push({
+        type: "promote_to_tier1",
+        workflow: row.workflow,
+        model: row.model,
+        reason: `${row.calls} calls, ${((row.successes / row.calls) * 100).toFixed(0)}% success, zero cost`
+      });
+    }
+
+    if (row.avg_duration_ms > 10000 && row.calls >= 3) {
+      suggestions.push({
+        type: "reduce_timeout",
+        workflow: row.workflow,
+        model: row.model,
+        reason: `Average ${row.avg_duration_ms}ms across ${row.calls} calls`
+      });
+    }
+  }
+
+  return suggestions;
+};
+
 export const maybeGenerateRoutingReports = async () => {
   const db = await getLedgerDb();
   const totalCalls = db.prepare(`SELECT COUNT(*) AS count FROM ledger_entries`).get().count;
@@ -73,5 +132,6 @@ export const maybeGenerateRoutingReports = async () => {
 
   const analysis = await analyzeRoutingPerformance();
   const paths = await writeRoutingReports(analysis);
+  await learnPatterns().catch(() => {});
   return { analysis, ...paths };
 };

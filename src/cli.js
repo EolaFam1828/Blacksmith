@@ -23,6 +23,7 @@ import { ensureBlacksmithHome } from "./utils/bootstrap.js";
 import { getIntentPath, loadConfig, setConfigValue, saveIntent } from "./utils/config.js";
 import { formatJson, formatYaml } from "./utils/format.js";
 import { getBlacksmithPath } from "./utils/paths.js";
+import { dim, bold, green, yellow, red, cyan } from "./utils/style.js";
 
 const print = (value) => {
   process.stdout.write(`${value}\n`);
@@ -32,25 +33,26 @@ const collectTask = (parts) => parts.join(" ").trim();
 
 const renderTaskResult = (result) => {
   if (result.dry_run) {
-    print(formatYaml(formatDryRun(result)));
+    print(dim(formatYaml(formatDryRun(result))));
     return;
   }
 
   print(result.result.text);
   print("");
-  print(
-    formatYaml({
-      tier: result.classification.tier,
-      passthrough: result.classification.passthrough,
-      backend: result.backend,
-      model: result.model,
-      estimated_cost: result.cost.estimated_cost,
-      department: result.classification.department,
-      escalated: result.escalated || false,
-      session: result.session || null,
-      worktree: result.worktree?.path || null
-    })
-  );
+
+  const costStr = `$${result.cost.estimated_cost.toFixed(6)}`;
+  const meta = [
+    `${dim("tier:")} ${result.classification.tier}`,
+    `${dim("backend:")} ${result.backend}`,
+    `${dim("model:")} ${cyan(result.model)}`,
+    `${dim("cost:")} ${result.cost.estimated_cost > 0.5 ? yellow(costStr) : green(costStr)}`,
+    `${dim("dept:")} ${result.classification.department}`,
+    result.escalated ? red("escalated: true") : null,
+    result.session ? `${dim("session:")} ${dim(result.session)}` : null,
+    result.worktree?.path ? `${dim("worktree:")} ${result.worktree.path}` : null
+  ].filter(Boolean);
+
+  print(meta.join("  "));
 };
 
 const addCommonModelOptions = (command, options = {}) => {

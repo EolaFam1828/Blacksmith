@@ -31,7 +31,8 @@ export const assembleAgentSpec = ({
   subAgents = [],
   task,
   backend,
-  model
+  model,
+  brainPrerequisites = []
 }) => {
   const department = identity.departments?.[classification.department] || {};
   const focus = department.focus || classification.department;
@@ -52,7 +53,7 @@ export const assembleAgentSpec = ({
         ? "commit_message"
       : "implementation_notes";
 
-  const brainPrerequisites = (brain?.results || [])
+  const brainExcerpts = (brain?.results || [])
     .flatMap((result) => result.excerpt.split("\n").map((line) => line.trim()).filter(Boolean).slice(0, 3))
     .slice(0, 6);
   const skills = [
@@ -83,7 +84,8 @@ export const assembleAgentSpec = ({
       `Department: ${classification.department}`,
       `Complexity: ${classification.complexity}`,
       ...(context.files || []).map((file) => `Loaded file: ${file.path}`),
-      ...brainPrerequisites,
+      ...brainExcerpts,
+      ...brainPrerequisites.map((p) => `[Brain] ${p}`),
       context.stagedDiff ? "Review staged git diff" : null,
       context.prDiff ? "Review pull request diff" : null
     ].filter(Boolean),

@@ -24,11 +24,29 @@ const ROUTES = [
   { notebook: "reference", keywords: ["reference", "docs", "doc", "guide", "example"] }
 ];
 
-export const routeBrainQuery = (query) => {
+export const routeBrainQuery = (query, classification) => {
   const lower = query.toLowerCase();
   const matches = ROUTES.filter((route) =>
     route.keywords.some((keyword) => lower.includes(keyword))
   ).map((route) => route.notebook);
+
+  if (classification) {
+    const dept = classification.department;
+    if (dept) {
+      const historyNotebook = `history-${dept}`;
+      if (!matches.includes(historyNotebook)) {
+        matches.push(historyNotebook);
+      }
+    }
+
+    if (classification.task_type === "debugging" && !matches.includes("errors")) {
+      matches.push("errors");
+    }
+
+    if (["implementation", "refactor"].includes(classification.task_type) && !matches.includes("reference")) {
+      matches.push("reference");
+    }
+  }
 
   return matches.length > 0 ? [...new Set(matches)] : ["reference", "project-blacksmith"];
 };

@@ -183,6 +183,28 @@ test("spend dashboard and routing report commands produce artifacts", async () =
   assert.match(reportOutput, /routing-performance\.md/);
 });
 
+test("classifier adds requires_checkpoint for high-complexity refactor", async () => {
+  const tempHome = await makeTempHome();
+  const output = await runCli(
+    ["refactor", "src/utils/", "--goal", "multi-file architecture migration", "--dry-run"],
+    { env: { BLACKSMITH_HOME: tempHome } }
+  );
+
+  assert.match(output, /requires_checkpoint: true/);
+  assert.match(output, /sub_agents_needed: 5/);
+});
+
+test("refactor dry-run includes pipeline_steps for high complexity", async () => {
+  const tempHome = await makeTempHome();
+  const output = await runCli(
+    ["refactor", "src/orchestrator/index.js", "--goal", "multi-file architecture migration", "--dry-run"],
+    { env: { BLACKSMITH_HOME: tempHome } }
+  );
+
+  assert.match(output, /pipeline_steps:/);
+  assert.match(output, /Research best practices/);
+});
+
 test("map writes the current workspace tree into Intent.md", async () => {
   const tempHome = await makeTempHome();
   const tempRepo = await fs.mkdtemp(path.join(os.tmpdir(), "blacksmith-repo-"));

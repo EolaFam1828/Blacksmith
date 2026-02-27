@@ -83,14 +83,37 @@ export const queryNotebook = async (name, query) => {
   };
 };
 
-export const queryBrain = async (query) => {
-  const notebooks = routeBrainQuery(query);
+export const queryBrain = async (query, classification) => {
+  const notebooks = routeBrainQuery(query, classification);
   const results = await Promise.all(notebooks.map((name) => queryNotebook(name, query)));
   return {
     query,
     notebooks,
     results
   };
+};
+
+export const queryBrainForPrerequisites = async (task, classification) => {
+  const notebooks = routeBrainQuery(task, classification);
+  const prerequisiteNotebooks = notebooks.filter(
+    (n) => n.startsWith("history-") || n === "errors" || n === "reference"
+  );
+
+  if (prerequisiteNotebooks.length === 0) return [];
+
+  const results = await Promise.all(
+    prerequisiteNotebooks.map((name) => queryNotebook(name, task).catch(() => null))
+  );
+
+  return results
+    .filter(Boolean)
+    .flatMap((r) =>
+      r.excerpt
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 10)
+    )
+    .slice(0, 8);
 };
 
 export const listNotebookSources = async (name) => {

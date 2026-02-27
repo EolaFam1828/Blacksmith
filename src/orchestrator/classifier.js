@@ -95,6 +95,16 @@ export const classifyTask = ({ command, prompt, filePaths = [], deep = false }) 
         ? 2
         : 0;
 
+  const requiresCheckpoint =
+    ["deploy", "provision"].includes(command) ||
+    (["refactor", "build"].includes(command) && complexity === "high");
+
+  let learnedPattern = null;
+  if (_learnedPatterns) {
+    const key = `${command}:${complexity}`;
+    learnedPattern = _learnedPatterns[key] || null;
+  }
+
   return {
     task_type: taskTypeMap[command] || command,
     complexity,
@@ -102,8 +112,22 @@ export const classifyTask = ({ command, prompt, filePaths = [], deep = false }) 
     context_needed: hasFiles ? filePaths : [],
     estimated_context_tokens: hasFiles ? filePaths.length * 1500 : 400,
     sub_agents_needed: subAgentsNeeded,
-    tier: tiering.tier,
-    passthrough: tiering.passthrough,
-    route_reason: tiering.reason
+    requires_checkpoint: requiresCheckpoint,
+    tier: learnedPattern?.tier ?? tiering.tier,
+    passthrough: learnedPattern?.passthrough ?? tiering.passthrough,
+    route_reason: learnedPattern?.reason ?? tiering.reason
   };
+};
+
+let _learnedPatterns = null;
+
+export const loadLearnedPatterns = async () => {
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const { getBlacksmithPath } = await import("../utils/paths.js");
+    const data = await readFile(getBlacksmithPath("learned-patterns.json"), "utf8");
+    _learnedPatterns = JSON.parse(data);
+  } catch {
+    _learnedPatterns = null;
+  }
 };

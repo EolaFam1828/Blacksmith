@@ -1,17 +1,23 @@
-import { queryBrain } from "../brain/index.js";
+import { queryBrain, queryBrainForPrerequisites } from "../brain/index.js";
 import { hydrateSession, scaffoldSession, compressExecution, storeSummary, teardownSession } from "../agents/lifecycle.js";
 import { runPrimaryAgent, runSubAgent } from "../agents/runner.js";
-import { planSubAgents, summarizeSubAgentResults } from "../agents/sub-agent.js";
+import { planSubAgents, summarizeSubAgentResults, runSubAgentPipeline } from "../agents/sub-agent.js";
 import { getIdentity, pickDepartmentModel } from "../identity/index.js";
 import { logLedgerEntry } from "../ledger/tracker.js";
 import { maybeGenerateRoutingReports } from "./self-improvement.js";
 import { backendForModel, resolveModelId } from "../mcr/index.js";
-import { createTaskWorktree, isGitRepository } from "../utils/git.js";
+import { createTaskWorktree, removeTaskWorktree, isGitRepository } from "../utils/git.js";
 import { loadConfig } from "../utils/config.js";
 import { classifyTask } from "./classifier.js";
 import { assembleAgentSpec, renderAgentPrompt } from "./agent-assembler.js";
 import { loadContext } from "./context-loader.js";
 import { estimateCost } from "./cost-estimator.js";
+import { withSpinner } from "../utils/spinner.js";
+import { shouldEscalate as checkEscalation, escalate } from "./escalation.js";
+import { generateStepsForCommand, isMultiStepCommand } from "./workflows.js";
+import { runBackend } from "../backends/index.js";
+import { confirmAction } from "../utils/prompt.js";
+import { createSession, getSession, updateSession, closeSession } from "../utils/session.js";
 
 const resolveRuntimeModelName = ({ backend, model, config, explicitModel }) => {
   if (explicitModel && !explicitModel.startsWith("ollama-")) {
@@ -151,7 +157,7 @@ const buildTierOnePrompt = ({ command, task, context, conventionalCommit = false
   return task;
 };
 
-const buildDryRunPayload = ({ classification, backend, model, cost, brain, spec, worktree }) => {
+const buildDryRunPayload = ({ classification, backend, model, cost, brain, spec, worktree, pipeline_steps }) => {
   const payload = {
     tier: classification.tier,
     passthrough: classification.passthrough,
@@ -169,7 +175,8 @@ const buildDryRunPayload = ({ classification, backend, model, cost, brain, spec,
     classification,
     brain: brain?.notebooks || [],
     spec,
-    worktree
+    worktree,
+    ...(pipeline_steps?.length ? { pipeline_steps } : {})
   };
 };
 
@@ -283,15 +290,17 @@ const runTierOne = async ({
   let success = false;
 
   try {
-    result = await runBackend({
-      backend,
-      model,
-      prompt,
-      options: {
-        cwd,
-        modelName: runtimeModelName
-      }
-    });
+    result = await withSpinner(`Running ${model}`, () =>
+      runBackend({
+        backend,
+        model,
+        prompt,
+        options: {
+          cwd,
+          modelName: runtimeModelName
+        }
+      })
+    );
     success = true;
   } finally {
     await logExecution({
@@ -335,7 +344,10 @@ const runTierTwo = async ({
   enforceHumanCheckpoint({ command, force, dryRun });
   const identity = await getIdentity();
   const brain = await queryBrain(task);
+  const brainPrereqs = await queryBrainForPrerequisites(task, classification).catch(() => []);
   const subAgents = planSubAgents({ classification, task });
+  const useMultiStep = isMultiStepCommand(command, classification);
+  const pipelineSteps = useMultiStep ? generateStepsForCommand(command, task, classification) : [];
   const model =
     explicitModel ||
     pickDepartmentModel(identity, classification) ||
@@ -353,7 +365,8 @@ const runTierTwo = async ({
     subAgents,
     task,
     backend,
-    model: resolvedModel
+    model: resolvedModel,
+    brainPrerequisites: brainPrereqs
   });
   let prompt = renderAgentPrompt({ spec, context, task });
   const cost = await estimateCost(resolvedModel, prompt, classification);
@@ -379,7 +392,8 @@ const runTierTwo = async ({
       model: resolvedModel,
       cost,
       spec,
-      worktree
+      worktree,
+      pipeline_steps: pipelineSteps.map((s) => s.name)
     };
   }
 
@@ -390,6 +404,8 @@ const runTierTwo = async ({
     backend,
     model: resolvedModel
   });
+  const managedSession = await createSession(command, task).catch(() => null);
+
   if (["refactor", "build"].includes(command) && classification.complexity === "high" && (await isGitRepository(cwd))) {
     worktree = await createTaskWorktree({ cwd, task, sessionId: session.id });
     executionCwd = worktree?.path || cwd;
@@ -412,81 +428,96 @@ const runTierTwo = async ({
   let subAgentResults = [];
 
   try {
-    if (subAgents.length > 0) {
-      subAgentResults = [];
-      for (const subAgent of subAgents) {
-        const subModel = resolveModelId(subAgent.model);
-        const subBackend = backendForModel(subModel);
-        const subResult = await runSubAgent({
-          backend: subBackend,
-          model: subModel,
-          prompt: subAgent.prompt,
-          options: {
-            cwd: executionCwd,
-            modelName: resolveRuntimeModelName({
+    if (useMultiStep && pipelineSteps.length > 0) {
+      subAgentResults = await runSubAgentPipeline(session, pipelineSteps, config);
+      const synthesized = summarizeSubAgentResults(subAgentResults);
+      result = await withSpinner(`Synthesizing with ${currentModel}`, () =>
+        runPrimaryAgent({
+          backend: currentBackend,
+          model: currentModel,
+          prompt: `${prompt}\n\nPipeline results:\n${synthesized}\n\nSynthesize a final response.`,
+          options: { cwd: executionCwd, modelName: runtimeModelName }
+        })
+      );
+    } else {
+      if (subAgents.length > 0) {
+        subAgentResults = [];
+        for (const subAgent of subAgents) {
+          const subModel = resolveModelId(subAgent.model);
+          const subBackend = backendForModel(subModel);
+          const subResult = await withSpinner(`Sub-agent: ${subAgent.name}`, () =>
+            runSubAgent({
               backend: subBackend,
               model: subModel,
-              config,
-              explicitModel: null
+              prompt: subAgent.prompt,
+              options: {
+                cwd: executionCwd,
+                modelName: resolveRuntimeModelName({
+                  backend: subBackend,
+                  model: subModel,
+                  config,
+                  explicitModel: null
+                })
+              },
+              name: subAgent.name,
+              kind: subAgent.kind
             })
-          },
-          name: subAgent.name,
-          kind: subAgent.kind
-        }).catch((error) => ({
-          name: subAgent.name,
-          kind: subAgent.kind,
-          model: subModel,
-          text: `Sub-agent failed: ${error.message}`,
-          usage: { prompt_tokens: 0, completion_tokens: 0 }
-        }));
-        subAgentResults.push(subResult);
-      }
-      prompt = `${prompt}\n\nSub-agent results:\n${summarizeSubAgentResults(subAgentResults)}`;
-    }
-
-    if (command === "review" && identity.departments?.engineering?.review_standard) {
-      const stageOne = await runPrimaryAgent({
-        backend: "gemini",
-        model: "gemini-2.5-flash",
-        prompt: `${prompt}\n\nStage 1: Check spec compliance and list deviations only.`,
-        options: {
-          cwd: executionCwd,
-          modelName: "gemini-2.5-flash"
+          ).catch((error) => ({
+            name: subAgent.name,
+            kind: subAgent.kind,
+            model: subModel,
+            text: `Sub-agent failed: ${error.message}`,
+            usage: { prompt_tokens: 0, completion_tokens: 0 }
+          }));
+          subAgentResults.push(subResult);
         }
-      }).catch(() => null);
-      if (stageOne?.text) {
-        prompt = `${prompt}\n\nStage 1 review findings:\n${stageOne.text}`;
+        prompt = `${prompt}\n\nSub-agent results:\n${summarizeSubAgentResults(subAgentResults)}`;
       }
-    }
 
-    result = await runPrimaryAgent({
-      backend: currentBackend,
-      model: currentModel,
-      prompt,
-      options: {
-        cwd: executionCwd,
-        modelName: runtimeModelName
+      if (command === "review" && identity.departments?.engineering?.review_standard) {
+        const stageOne = await withSpinner("Stage 1: spec compliance", () =>
+          runPrimaryAgent({
+            backend: "gemini",
+            model: "gemini-2.5-flash",
+            prompt: `${prompt}\n\nStage 1: Check spec compliance and list deviations only.`,
+            options: { cwd: executionCwd, modelName: "gemini-2.5-flash" }
+          })
+        ).catch(() => null);
+        if (stageOne?.text) {
+          prompt = `${prompt}\n\nStage 1 review findings:\n${stageOne.text}`;
+        }
       }
-    });
+
+      result = await withSpinner(`Running ${currentModel}`, () =>
+        runPrimaryAgent({
+          backend: currentBackend,
+          model: currentModel,
+          prompt,
+          options: { cwd: executionCwd, modelName: runtimeModelName }
+        })
+      );
+    }
 
     if (shouldEscalate({ result, classification, config, explicitBackend, currentModel })) {
       const escalatedModel = getEscalationPath(currentModel);
       if (escalatedModel) {
         const escalatedBackend = backendForModel(escalatedModel);
-        const escalatedResult = await runPrimaryAgent({
-          backend: escalatedBackend,
-          model: escalatedModel,
-          prompt: `${prompt}\n\nPrevious attempt was insufficient. Return a stronger answer.`,
-          options: {
-            cwd: executionCwd,
-            modelName: resolveRuntimeModelName({
-              backend: escalatedBackend,
-              model: escalatedModel,
-              config,
-              explicitModel: null
-            })
-          }
-        });
+        const escalatedResult = await withSpinner(`Escalating to ${escalatedModel}`, () =>
+          runPrimaryAgent({
+            backend: escalatedBackend,
+            model: escalatedModel,
+            prompt: `${prompt}\n\nPrevious attempt was insufficient. Return a stronger answer.`,
+            options: {
+              cwd: executionCwd,
+              modelName: resolveRuntimeModelName({
+                backend: escalatedBackend,
+                model: escalatedModel,
+                config,
+                explicitModel: null
+              })
+            }
+          })
+        );
         result = {
           ...escalatedResult,
           text: `${escalatedResult.text}\n\n[Escalated from ${currentModel} to ${escalatedModel}]`
@@ -511,6 +542,7 @@ const runTierTwo = async ({
         brain_notebooks: brain.notebooks,
         route_reason: classification.route_reason,
         sub_agents: subAgents.map((agent) => agent.name),
+        pipeline_steps: pipelineSteps.map((s) => s.name),
         worktree,
         branch: worktree?.branch
       },
@@ -520,6 +552,18 @@ const runTierTwo = async ({
       sessionId: session.id,
       project: extractProjectName(cwd)
     });
+
+    if (managedSession) {
+      await updateSession(managedSession.id, { success, escalated, model: currentModel }).catch(() => {});
+    }
+
+    if (worktree && success) {
+      const keepWorktree = await confirmAction(`Keep worktree at ${worktree.path}? (merge manually)`).catch(() => false);
+      if (!keepWorktree) {
+        await removeTaskWorktree({ cwd, worktreePath: worktree.path, branch: worktree.branch });
+        worktree = { ...worktree, removed: true };
+      }
+    }
   }
 
   const compact = compressExecution({
@@ -540,6 +584,11 @@ const runTierTwo = async ({
     escalated,
     model: currentModel
   });
+
+  if (managedSession) {
+    await closeSession(managedSession.id).catch(() => {});
+  }
+
   return {
     classification,
     brain,
@@ -612,5 +661,4 @@ export const orchestrateTask = async ({
 
 export const formatDryRun = buildDryRunPayload;
 
-const cryptoRandom = () => Math.random().toString(36).slice(2);
 const extractProjectName = (cwd) => cwd.split("/").filter(Boolean).at(-1) || "blacksmith";
