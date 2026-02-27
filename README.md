@@ -10,8 +10,14 @@
 
 ### One-Line Install
 
+**macOS / Linux:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/EolaFam1828/Blacksmith-Claude/main/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/EolaFam1828/Blacksmith-Claude/main/install.ps1 | iex
 ```
 
 ### Manual Install
