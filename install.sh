@@ -64,26 +64,13 @@ if ! command -v git &>/dev/null; then
 fi
 ok "git $(git --version | awk '{print $3}')"
 
-# ── Optional: ollama ────────────────────────
-if command -v ollama &>/dev/null; then
-  ok "ollama found (local models available)"
-else
-  warn "ollama not found — local models will be unavailable. Install: https://ollama.ai"
-fi
-
-# ── Optional: gh ────────────────────────────
-if command -v gh &>/dev/null; then
-  ok "gh CLI found (GitHub operations available)"
-else
-  warn "gh CLI not found — GitHub operations will be unavailable. Install: https://cli.github.com"
-fi
-
-# ── Optional: gemini ────────────────────────
-if command -v gemini &>/dev/null; then
-  ok "gemini CLI found"
-else
-  warn "gemini CLI not found — Gemini backend will be unavailable"
-fi
+# ── Optional tools (full detection handled by setup wizard) ──
+info "Optional backends will be detected by the setup wizard on first launch."
+for tool in ollama gh gemini claude codex; do
+  if command -v "$tool" &>/dev/null; then
+    ok "$tool found"
+  fi
+done
 
 echo ""
 
@@ -119,7 +106,8 @@ ok "Home directory bootstrapped"
 echo ""
 echo -e "${GREEN}${BOLD}Blacksmith installed successfully!${RESET}"
 echo ""
-echo -e "  Run ${CYAN}blacksmith${RESET}         — launch the interactive TUI"
-echo -e "  Run ${CYAN}blacksmith ask <task>${RESET} — quick one-shot query"
-echo -e "  Run ${CYAN}blacksmith --help${RESET}    — see all commands"
+echo -e "  Run ${CYAN}blacksmith${RESET}              — launch TUI (setup wizard runs on first launch)"
+echo -e "  Run ${CYAN}blacksmith setup${RESET}         — re-run backend setup wizard"
+echo -e "  Run ${CYAN}blacksmith ask <task>${RESET}    — quick one-shot query"
+echo -e "  Run ${CYAN}blacksmith --help${RESET}        — see all commands"
 echo ""

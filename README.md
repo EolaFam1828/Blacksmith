@@ -33,7 +33,7 @@ blacksmith brain init
 ### First Run
 
 ```bash
-# Launch the interactive TUI
+# Launch the interactive TUI (setup wizard runs automatically on first launch)
 blacksmith
 
 # Or run a one-shot command
@@ -41,6 +41,13 @@ blacksmith ask "What port does Redis use?"
 
 # See all commands
 blacksmith --help
+```
+
+On first launch, Blacksmith runs a **setup wizard** that probes your system for available backends (Ollama, Claude CLI, Gemini CLI, Codex CLI, GitHub CLI), auto-configures which ones are enabled, and saves the results. You can re-run it at any time:
+
+```bash
+# Re-run the setup wizard
+blacksmith setup
 ```
 
 ## Architecture
@@ -139,6 +146,7 @@ Blacksmith uses a two-tier orchestration model:
 | `spend --dashboard` | Generate HTML spend dashboard |
 | `map` | Update project tree in Intent.md |
 | `routing-report` | Generate routing analysis |
+| `setup` | Re-run the first-run setup wizard |
 
 ## Global Options
 
@@ -154,12 +162,14 @@ Blacksmith uses a two-tier orchestration model:
 
 Run `blacksmith` with no arguments to launch the interactive terminal UI:
 
-- **`/`** — Open command palette with fuzzy search
+- **`/`** — Open command palette with fuzzy search (includes `setup` to re-run the wizard)
 - **`?`** — Toggle keyboard shortcut help
 - **`q`** — Quit
 - **Type any task** — Automatically routed (prefix with a command name, or defaults to `ask`)
 
 The TUI shows a live status bar with the active model, running cost, brain notebook count, and session history.
+
+On first launch, the TUI automatically opens the **setup wizard** to detect available backends. After completing setup, subsequent launches go straight to the main interface.
 
 ## Configuration
 
@@ -167,7 +177,7 @@ All configuration lives in `~/.blacksmith/`:
 
 | File | Purpose |
 |------|---------|
-| `config.yaml` | Backend settings, routing rules, cost guards |
+| `config.yaml` | Backend settings, routing rules, cost guards, `setup_completed` flag |
 | `Intent.md` | Organizational identity (mission, departments, owner) |
 | `OrchestratorPrompt.md` | Orchestrator behavior guide |
 | `mcr.yaml` | Model Capability Registry |

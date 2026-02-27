@@ -2,6 +2,18 @@
 
 All notable changes to Blacksmith are documented in this file.
 
+## [Unreleased]
+
+### Added
+- First-run setup wizard that auto-detects and configures available backends
+  - 4-step guided flow: Welcome → Probing → Results → Done
+  - Probes Ollama (HTTP), Claude CLI, Gemini CLI, Codex CLI, and GitHub CLI
+  - Auto-enables/disables backends in `config.yaml` based on probe results
+  - Sets `setup_completed` flag so the wizard only runs once
+  - Re-runnable via `blacksmith setup` CLI command or `/` command palette in the TUI
+- Backend probe utility (`src/utils/probe-backends.js`) with Ollama HTTP health check and CLI detection
+- New `setup` entry in TUI command palette
+
 ## [0.2.0] - 2026-02-26
 
 ### Added

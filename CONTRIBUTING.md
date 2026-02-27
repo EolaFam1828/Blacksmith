@@ -57,7 +57,7 @@ test/              # Node.js native test runner
 
 2. **Add routing logic** (if needed) in `src/orchestrator/classifier.js` — add keywords for complexity detection and department assignment.
 
-3. **Register in TUI** by adding an entry to the `commands` array in `src/tui/commands.js`.
+3. **Register in TUI** by adding an entry to the `commands` array in `src/tui/commands.js`. Update the command count assertion in `test/tui-commands.test.js`.
 
 4. **Write tests** in `test/` using Node's native `test` module:
 

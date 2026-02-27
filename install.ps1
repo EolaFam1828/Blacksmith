@@ -60,25 +60,12 @@ if (-not $gitPath) {
 $gitVersion = (git --version) -replace 'git version\s*', ''
 Write-Ok "git $gitVersion"
 
-# ── Optional: ollama ────────────────────────
-if (Get-Command ollama -ErrorAction SilentlyContinue) {
-    Write-Ok 'ollama found (local models available)'
-} else {
-    Write-Warn 'ollama not found — local models will be unavailable. Install: https://ollama.ai'
-}
-
-# ── Optional: gh ────────────────────────────
-if (Get-Command gh -ErrorAction SilentlyContinue) {
-    Write-Ok 'gh CLI found (GitHub operations available)'
-} else {
-    Write-Warn 'gh CLI not found — GitHub operations will be unavailable. Install: https://cli.github.com'
-}
-
-# ── Optional: gemini ────────────────────────
-if (Get-Command gemini -ErrorAction SilentlyContinue) {
-    Write-Ok 'gemini CLI found'
-} else {
-    Write-Warn 'gemini CLI not found — Gemini backend will be unavailable'
+# ── Optional tools (full detection handled by setup wizard) ──
+Write-Info 'Optional backends will be detected by the setup wizard on first launch.'
+foreach ($tool in @('ollama', 'gh', 'gemini', 'claude', 'codex')) {
+    if (Get-Command $tool -ErrorAction SilentlyContinue) {
+        Write-Ok "$tool found"
+    }
 }
 
 Write-Host ''
@@ -138,7 +125,8 @@ Pop-Location
 Write-Host ''
 Write-Host 'Blacksmith installed successfully!' -ForegroundColor Green
 Write-Host ''
-Write-Host '  Run ' -NoNewline; Write-Host 'blacksmith' -ForegroundColor Cyan -NoNewline; Write-Host '          — launch the interactive TUI'
-Write-Host '  Run ' -NoNewline; Write-Host 'blacksmith ask <task>' -ForegroundColor Cyan -NoNewline; Write-Host ' — quick one-shot query'
-Write-Host '  Run ' -NoNewline; Write-Host 'blacksmith --help' -ForegroundColor Cyan -NoNewline; Write-Host '     — see all commands'
+Write-Host '  Run ' -NoNewline; Write-Host 'blacksmith' -ForegroundColor Cyan -NoNewline; Write-Host '              — launch TUI (setup wizard runs on first launch)'
+Write-Host '  Run ' -NoNewline; Write-Host 'blacksmith setup' -ForegroundColor Cyan -NoNewline; Write-Host '         — re-run backend setup wizard'
+Write-Host '  Run ' -NoNewline; Write-Host 'blacksmith ask <task>' -ForegroundColor Cyan -NoNewline; Write-Host '    — quick one-shot query'
+Write-Host '  Run ' -NoNewline; Write-Host 'blacksmith --help' -ForegroundColor Cyan -NoNewline; Write-Host '        — see all commands'
 Write-Host ''
