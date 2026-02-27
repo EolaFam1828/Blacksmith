@@ -3,12 +3,12 @@
 .SYNOPSIS
     Blacksmith CLI — Windows Installer
 .DESCRIPTION
-    One-line install: irm https://raw.githubusercontent.com/EolaFam1828/Blacksmith-Claude/main/install.ps1 | iex
+    One-line install: irm https://raw.githubusercontent.com/EolaFam1828/Blacksmith/main/install.ps1 | iex
 #>
 
 $ErrorActionPreference = 'Stop'
 
-$RepoUrl = 'https://github.com/EolaFam1828/Blacksmith-Claude.git'
+$RepoUrl = 'https://github.com/EolaFam1828/Blacksmith.git'
 $InstallDir = if ($env:BLACKSMITH_INSTALL_DIR) { $env:BLACKSMITH_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA 'blacksmith-cli' }
 $MinNodeMajor = 25
 
