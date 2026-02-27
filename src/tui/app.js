@@ -6,16 +6,28 @@ import { OutputArea } from "./output-area.js";
 import { InputBar } from "./input-bar.js";
 import { CommandPalette } from "./command-palette.js";
 import { HelpOverlay } from "./help-overlay.js";
+import { SetupWizard } from "./setup-wizard.js";
 import { useBlacksmithState, useTaskRunner } from "./hooks.js";
 
-const { useState, useCallback } = React;
+const { useState, useEffect, useCallback } = React;
 
 export const App = () => {
   const { exit } = useApp();
   const [mode, setMode] = useState("input");
+  const [showSetup, setShowSetup] = useState(null);
 
   const { config, brain, spend, loading } = useBlacksmithState();
   const { run, running, history } = useTaskRunner();
+
+  useEffect(() => {
+    if (!loading && showSetup === null) {
+      setShowSetup(!config?.setup_completed);
+    }
+  }, [loading, showSetup, config]);
+
+  const handleSetupComplete = useCallback(() => {
+    setShowSetup(false);
+  }, []);
 
   const activeModel = config?.routing?.default_backend || "ollama";
   const totalCost = spend?.total_cost ?? 0;
@@ -29,6 +41,10 @@ export const App = () => {
 
   const handlePaletteSelect = useCallback((commandName) => {
     setMode("input");
+    if (commandName === "setup") {
+      setShowSetup(true);
+      return;
+    }
     if (!running) {
       run(commandName, "");
     }
@@ -57,6 +73,10 @@ export const App = () => {
         <${Text} color="cyan">Loading Blacksmith...<//>
       <//>
     `;
+  }
+
+  if (showSetup) {
+    return html`<${SetupWizard} onComplete=${handleSetupComplete} />`;
   }
 
   return html`

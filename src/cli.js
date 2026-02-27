@@ -519,6 +519,11 @@ export const buildProgram = () => {
     print(tree);
   });
 
+  program.command("setup").description("Re-run the first-run setup wizard").action(async () => {
+    const { launchSetup } = await import("./tui/index.js");
+    await launchSetup();
+  });
+
   program.command("routing-report").description("Generate routing analysis and prompt suggestions").action(async () => {
     const analysis = await analyzeRoutingPerformance();
     const paths = await writeRoutingReports(analysis);

@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { commands, parseInput } from "../src/tui/commands.js";
 
-test("command registry contains all 18 commands", () => {
-  assert.equal(commands.length, 18);
+test("command registry contains all 19 commands", () => {
+  assert.equal(commands.length, 19);
 
   const names = commands.map((c) => c.name);
   const expected = [
     "ask", "build", "research", "compare", "summarize", "debug",
     "refactor", "review", "commit", "deploy", "diagnose", "provision",
-    "brain", "identity", "mcr", "config", "spend", "map",
+    "brain", "identity", "mcr", "config", "spend", "map", "setup",
   ];
 
   for (const name of expected) {

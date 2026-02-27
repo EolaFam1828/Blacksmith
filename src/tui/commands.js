@@ -17,6 +17,7 @@ export const commands = [
   { name: "config", description: "Configuration management", hasTaskArg: false, department: "system" },
   { name: "spend", description: "Show spend data", hasTaskArg: false, department: "system" },
   { name: "map", description: "Update Intent project map", hasTaskArg: false, department: "system" },
+  { name: "setup", description: "Re-run backend setup wizard", hasTaskArg: false, department: "system" },
 ];
 
 const commandNames = new Set(commands.map((c) => c.name));
