@@ -1,6 +1,6 @@
 import { html, React } from "./html.js";
 import { Box, Text, useInput } from "ink";
-import Spinner from "ink-spinner";
+import { Spinner } from "@inkjs/ui";
 import { probeBackends, buildEnabledPatch } from "../utils/probe-backends.js";
 import { loadConfig, saveConfig } from "../utils/config.js";
 
@@ -79,10 +79,7 @@ export const SetupWizard = ({ onComplete }) => {
       <${Box} flexDirection="column" padding=${1}>
         <${Text} bold color="cyan">Blacksmith Setup Wizard<//>
         <${Text}> <//>
-        <${Box}>
-          <${Text} color="cyan"><${Spinner} type="dots" /> <//>
-          <${Text}> Probing backends...<//>
-        <//>
+        <${Spinner} label="Probing backends..." />
       <//>
     `;
   }
