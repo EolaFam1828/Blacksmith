@@ -3,10 +3,10 @@ set -euo pipefail
 
 # ─────────────────────────────────────────────
 # Blacksmith CLI — One-Line Installer
-# curl -fsSL https://raw.githubusercontent.com/EolaFam1828/Blacksmith-Claude/main/install.sh | bash
+# curl -fsSL https://raw.githubusercontent.com/EolaFam1828/Blacksmith/main/install.sh | bash
 # ─────────────────────────────────────────────
 
-REPO_URL="https://github.com/EolaFam1828/Blacksmith-Claude.git"
+REPO_URL="https://github.com/EolaFam1828/Blacksmith.git"
 INSTALL_DIR="${BLACKSMITH_INSTALL_DIR:-$HOME/.local/share/blacksmith-cli}"
 MIN_NODE_MAJOR=25
 
