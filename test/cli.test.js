@@ -97,7 +97,7 @@ test("research dry-run routes to research with Gemini Pro", async () => {
   });
 
   assert.match(output, /department: research/);
-  assert.match(output, /model: gemini-2.5-pro/);
+  assert.match(output, /model: gemini-2.0-pro/);
   assert.match(output, /format: research_report/);
 });
 

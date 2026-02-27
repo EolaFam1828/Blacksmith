@@ -101,9 +101,9 @@ Blacksmith uses a two-tier orchestration model:
 | `ask <task>` | Raw passthrough query | ollama-qwen2.5-coder |
 | `ask <task> --deep` | Upgraded to Tier 2 orchestration | varies by task |
 | `build <task>` | Implementation workflow | claude-code |
-| `research <task>` | Research and synthesis | gemini-2.5-pro |
-| `compare <a> <b> --for <use>` | Side-by-side comparison | gemini-2.5-pro |
-| `summarize <target>` | Summarize URL or file | gemini-2.5-flash |
+| `research <task>` | Research and synthesis | gemini-2.0-pro |
+| `compare <a> <b> --for <use>` | Side-by-side comparison | gemini-2.0-pro |
+| `summarize <target>` | Summarize URL or file | gemini-2.0-flash |
 | `debug <task>` | Debugging workflow | varies by complexity |
 | `refactor <target> --goal <g>` | Multi-step refactor with checkpoints | claude-code |
 | `review [target]` | Code review | claude-code |
@@ -143,7 +143,7 @@ Blacksmith uses a two-tier orchestration model:
 ## Global Options
 
 ```
---backend <backend>   Override backend (ollama, claude, gemini, codex, jules)
+--backend <backend>   Override backend (ollama, claude, gemini, openai, codex, jules)
 --model <model>       Override model selection
 --dry-run             Show execution plan without running
 --force               Skip cost guardrail confirmations
@@ -219,9 +219,10 @@ Blacksmith-Claude/
 
 | Backend | Provider | Models | Cost | Notes |
 |---------|----------|--------|------|-------|
-| ollama | Local | qwen2.5-coder, deepseek-r1 | Free | Default for simple tasks |
-| claude | Anthropic | claude-code (Sonnet) | $3/$15 per 1M tokens | Default for complex tasks |
-| gemini | Google | gemini-2.5-pro, gemini-2.5-flash | $0.15–$10 per 1M | Default for research |
+| ollama | Local | qwen2.5-coder, deepseek-r1, llama-3.3-70b, nomic-embed, mxbai-embed | Free | Default for simple tasks |
+| claude | Anthropic | claude-code (3.7 Sonnet), claude-3.5-haiku | $0.25–$15 per 1M | Default for complex tasks |
+| gemini | Google | gemini-2.0-pro, gemini-2.0-flash | $0.10–$10 per 1M | Default for research |
+| openai | OpenAI | gpt-4.5, o3, o3-mini, gpt-4o-mini | $0.15–$60 per 1M | Deep reasoning & economy |
 | codex | OpenAI | codex-cli | $2.5/$10 per 1M | Alternative for code tasks |
 | jules | Google | jules-cli | Async | Asynchronous operations |
 | github | GitHub | gh CLI | N/A | Native git/PR operations |

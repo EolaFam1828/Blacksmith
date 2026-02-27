@@ -17,7 +17,12 @@ backends:
 
   gemini:
     enabled: true
-    default_model: "gemini-2.5-pro"
+    default_model: "gemini-2.0-pro"
+
+  openai:
+    enabled: true
+    default_model: "gpt-4.5"
+    max_monthly_spend: 50.0
 
   codex:
     enabled: true
@@ -56,6 +61,7 @@ context:
     ollama: 4000
     claude: 100000
     gemini: 500000
+    openai: 128000
     codex: 32000
   exclude:
     - "node_modules/**"
@@ -70,9 +76,11 @@ logging:
 `;
 
 export const DEFAULT_MCR = `models:
+  # ─── Heavyweights ─────────────────────────────────────────────
   claude-code:
     provider: anthropic
     access: cli
+    underlying_model: claude-3.7-sonnet
     context_window: 200000
     strengths:
       - agentic_code_editing
@@ -93,10 +101,31 @@ export const DEFAULT_MCR = `models:
       - "design system architecture"
       - "write infrastructure as code"
 
-  gemini-2.5-pro:
+  gpt-4.5:
+    provider: openai
+    access: api
+    context_window: 128000
+    strengths:
+      - broad_knowledge
+      - creative_writing
+      - instruction_following
+      - multimodal
+    weaknesses:
+      - cost_per_token
+      - speed
+    cost:
+      input_per_1m: 10.0
+      output_per_1m: 30.0
+    speed: medium
+    best_for:
+      - "nuanced creative or analytical task"
+      - "complex multi-step instruction"
+      - "broad-knowledge synthesis"
+
+  gemini-2.0-pro:
     provider: google
-    access: cli
-    context_window: 1048576
+    access: api
+    context_window: 2097152
     strengths:
       - deep_reasoning
       - long_context_analysis
@@ -116,27 +145,140 @@ export const DEFAULT_MCR = `models:
       - "synthesize multiple documents"
       - "novel problem requiring creative reasoning"
 
-  gemini-2.5-flash:
-    provider: google
-    access: cli
-    context_window: 1048576
+  # ─── Deep Reasoning ──────────────────────────────────────────
+  o3:
+    provider: openai
+    access: api
+    context_window: 200000
+    strengths:
+      - deep_reasoning
+      - math
+      - code_analysis
+      - scientific_reasoning
+    weaknesses:
+      - cost_per_token
+      - speed
+      - simple_tasks_overkill
+    cost:
+      input_per_1m: 15.0
+      output_per_1m: 60.0
+    speed: slow
+    best_for:
+      - "complex algorithmic problem"
+      - "mathematical proof or verification"
+      - "deep code analysis requiring chain of thought"
+
+  o3-mini:
+    provider: openai
+    access: api
+    context_window: 200000
+    strengths:
+      - reasoning
+      - math
+      - cost_efficiency
+      - code_analysis
+    weaknesses:
+      - creative_writing
+      - multimodal
+    cost:
+      input_per_1m: 1.10
+      output_per_1m: 4.40
+    speed: fast
+    best_for:
+      - "debug logic error"
+      - "algorithmic optimization"
+      - "math or data analysis"
+
+  ollama-deepseek-r1:
+    provider: local
+    access: http
+    context_window: 131072
+    strengths:
+      - zero_cost
+      - reasoning
+      - code_analysis
+      - math
+      - privacy
+    weaknesses:
+      - speed
+      - very_complex_tasks
+    cost:
+      input_per_1m: 0.0
+      output_per_1m: 0.0
+    speed: medium
+    best_for:
+      - "analyze algorithm complexity"
+      - "debug logic error locally"
+      - "explain technical concept"
+
+  # ─── Speed / Economy ─────────────────────────────────────────
+  gpt-4o-mini:
+    provider: openai
+    access: api
+    context_window: 128000
     strengths:
       - speed
       - cost_efficiency
       - summarization
       - classification
+      - multimodal
     weaknesses:
       - complex_reasoning
       - precision_tasks
     cost:
       input_per_1m: 0.15
-      output_per_1m: 0.6
+      output_per_1m: 0.60
     speed: fast
     best_for:
       - "quick classification"
       - "summarize document"
       - "triage issues"
 
+  gemini-2.0-flash:
+    provider: google
+    access: api
+    context_window: 1048576
+    strengths:
+      - speed
+      - cost_efficiency
+      - summarization
+      - classification
+      - long_context
+    weaknesses:
+      - complex_reasoning
+      - precision_tasks
+    cost:
+      input_per_1m: 0.10
+      output_per_1m: 0.40
+    speed: fast
+    best_for:
+      - "quick classification"
+      - "summarize long document"
+      - "triage and route tasks"
+      - "orchestrator internal calls"
+
+  claude-3.5-haiku:
+    provider: anthropic
+    access: api
+    context_window: 200000
+    strengths:
+      - speed
+      - code_generation
+      - instruction_following
+      - cost_efficiency
+    weaknesses:
+      - deep_reasoning
+      - long_context_analysis
+    cost:
+      input_per_1m: 0.25
+      output_per_1m: 1.25
+    speed: fast
+    best_for:
+      - "quick code generation"
+      - "simple Q&A"
+      - "lightweight code review"
+
+  # ─── Local / Offline ─────────────────────────────────────────
   ollama-qwen2.5-coder:
     provider: local
     access: http
@@ -162,27 +304,69 @@ export const DEFAULT_MCR = `models:
       - "simple code snippet"
       - "quick factual question"
 
-  ollama-deepseek-r1:
+  ollama-llama-3.3-70b:
     provider: local
     access: http
-    context_window: 65536
+    context_window: 131072
     strengths:
       - zero_cost
-      - reasoning
-      - code_analysis
-      - math
+      - privacy
+      - broad_knowledge
+      - code_generation
+      - instruction_following
     weaknesses:
       - speed
-      - very_complex_tasks
+      - resource_intensive
     cost:
       input_per_1m: 0.0
       output_per_1m: 0.0
-    speed: medium
+    speed: slow
     best_for:
-      - "analyze algorithm complexity"
-      - "debug logic error locally"
-      - "explain technical concept"
+      - "local heavyweight reasoning"
+      - "code generation without cloud"
+      - "offline development"
 
+  ollama-nomic-embed:
+    provider: local
+    access: http
+    kind: embedding
+    context_window: 8192
+    strengths:
+      - zero_cost
+      - privacy
+      - fast_embedding
+      - semantic_search
+    weaknesses:
+      - not_generative
+    cost:
+      input_per_1m: 0.0
+      output_per_1m: 0.0
+    speed: fastest
+    best_for:
+      - "local semantic search"
+      - "notebook similarity matching"
+
+  ollama-mxbai-embed:
+    provider: local
+    access: http
+    kind: embedding
+    context_window: 512
+    strengths:
+      - zero_cost
+      - privacy
+      - compact_embedding
+    weaknesses:
+      - not_generative
+      - short_context
+    cost:
+      input_per_1m: 0.0
+      output_per_1m: 0.0
+    speed: fastest
+    best_for:
+      - "lightweight local embedding"
+      - "short-text similarity"
+
+  # ─── CLI Tools (Operational) ─────────────────────────────────
   codex-cli:
     provider: openai
     access: cli
@@ -244,14 +428,15 @@ export const DEFAULT_MCR = `models:
 
 routing_principles:
   - "Always try local (Ollama) first for tasks under 4K context that don't require frontier reasoning"
-  - "Use Gemini Flash for classification and triage - it is much cheaper than Pro"
+  - "Use Gemini 2.0 Flash for classification and triage - cheapest cloud option"
   - "Reserve Claude Code for tasks where precision has financial or safety consequences"
-  - "Use Gemini Pro for novel or undefined problems"
+  - "Use Gemini 2.0 Pro for novel or undefined problems requiring deep reasoning"
+  - "Use o3-mini as a cost-effective reasoning model when local models fall short"
   - "Jules is for async only"
   - "If a task could be handled by two models, pick the cheaper one and escalate if quality is low"
-  - "The orchestrator itself should run on Gemini Flash"
+  - "The orchestrator itself should run on Gemini 2.0 Flash"
 
-last_updated: "2026-02-26"
+last_updated: "2026-02-27"
 benchmark_sources:
   - "https://lmarena.ai"
   - "https://livebench.ai"

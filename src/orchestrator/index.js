@@ -37,11 +37,15 @@ const resolveRuntimeModelName = ({ backend, model, config, explicitModel }) => {
   }
 
   if (backend === "gemini") {
-    if (model === "gemini-2.5-flash") {
-      return "gemini-2.5-flash";
+    if (model === "gemini-2.0-flash") {
+      return "gemini-2.0-flash";
     }
 
-    return config.backends?.gemini?.default_model || "gemini-2.5-pro";
+    return config.backends?.gemini?.default_model || "gemini-2.0-pro";
+  }
+
+  if (backend === "openai") {
+    return explicitModel || model;
   }
 
   return explicitModel || undefined;
@@ -50,14 +54,26 @@ const resolveRuntimeModelName = ({ backend, model, config, explicitModel }) => {
 const getEscalationPath = (model) => {
   switch (model) {
     case "ollama-qwen2.5-coder":
-      return "gemini-2.5-flash";
+      return "gemini-2.0-flash";
     case "ollama-deepseek-r1":
-      return "gemini-2.5-pro";
-    case "gemini-2.5-flash":
-      return "gemini-2.5-pro";
+      return "o3-mini";
+    case "ollama-llama-3.3-70b":
+      return "gemini-2.0-pro";
+    case "gemini-2.0-flash":
+      return "gemini-2.0-pro";
+    case "gpt-4o-mini":
+      return "gpt-4.5";
+    case "o3-mini":
+      return "o3";
+    case "claude-3.5-haiku":
+      return "claude-code";
     case "codex-cli":
       return "claude-code";
-    case "gemini-2.5-pro":
+    case "gemini-2.0-pro":
+      return "claude-code";
+    case "gpt-4.5":
+      return "claude-code";
+    case "o3":
       return "claude-code";
     default:
       return null;
@@ -91,7 +107,8 @@ const chooseFallbackModel = ({ command, classification, explicitBackend, explici
 
   if (explicitBackend === "ollama") return "ollama-qwen2.5-coder";
   if (explicitBackend === "claude") return "claude-code";
-  if (explicitBackend === "gemini") return "gemini-2.5-pro";
+  if (explicitBackend === "gemini") return "gemini-2.0-pro";
+  if (explicitBackend === "openai") return "gpt-4.5";
   if (explicitBackend === "codex") return "codex-cli";
   if (explicitBackend === "jules") return "jules-cli";
 
@@ -108,11 +125,11 @@ const chooseFallbackModel = ({ command, classification, explicitBackend, explici
   }
 
   if (["research", "compare"].includes(command)) {
-    return "gemini-2.5-pro";
+    return "gemini-2.0-pro";
   }
 
   if (command === "summarize") {
-    return "gemini-2.5-flash";
+    return "gemini-2.0-flash";
   }
 
   if (["deploy", "diagnose", "provision"].includes(command)) {
@@ -163,7 +180,8 @@ const buildDryRunPayload = ({ classification, backend, model, cost, brain, spec,
     passthrough: classification.passthrough,
     backend,
     model,
-    estimated_cost: cost.estimated_cost
+    estimated_cost: cost.estimated_cost,
+    department: classification.department
   };
 
   if (classification.passthrough) {
@@ -478,9 +496,9 @@ const runTierTwo = async ({
         const stageOne = await withSpinner("Stage 1: spec compliance", () =>
           runPrimaryAgent({
             backend: "gemini",
-            model: "gemini-2.5-flash",
+            model: "gemini-2.0-flash",
             prompt: `${prompt}\n\nStage 1: Check spec compliance and list deviations only.`,
-            options: { cwd: executionCwd, modelName: "gemini-2.5-flash" }
+            options: { cwd: executionCwd, modelName: "gemini-2.0-flash" }
           })
         ).catch(() => null);
         if (stageOne?.text) {

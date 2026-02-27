@@ -43,13 +43,13 @@ test("shouldRequestCheckpoint returns true for checkpoint steps", () => {
 
 test("summarizeSubAgentResults formats results correctly", () => {
   const results = [
-    { name: "Research", model: "gemini-2.5-pro", text: "Found best practices" },
+    { name: "Research", model: "gemini-2.0-pro", text: "Found best practices" },
     { name: "Plan", model: "claude-code", text: "Step 1: Extract" }
   ];
 
   const summary = summarizeSubAgentResults(results);
   assert.match(summary, /### Research/);
-  assert.match(summary, /gemini-2.5-pro/);
+  assert.match(summary, /gemini-2.0-pro/);
   assert.match(summary, /### Plan/);
   assert.match(summary, /claude-code/);
 });

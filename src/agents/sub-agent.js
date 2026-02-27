@@ -15,11 +15,11 @@ const makeSubAgent = (name, department, model, prompt, kind, opts = {}) => ({
 export const planSubAgents = ({ classification, task }) => {
   if (classification.task_type === "refactor") {
     return [
-      makeSubAgent("Research current approach", "research", "gemini-2.5-pro", `Research best practices for: ${task}`, "research"),
+      makeSubAgent("Research current approach", "research", "gemini-2.0-pro", `Research best practices for: ${task}`, "research"),
       makeSubAgent("Analyze current code paths", "engineering", "ollama-deepseek-r1", `Analyze current code paths for: ${task}`, "analysis"),
       makeSubAgent("Generate refactor plan", "engineering", "claude-code", `Generate a step-by-step refactor plan for: ${task}`, "plan", { checkpoint: true }),
       makeSubAgent("Generate tests", "engineering", "ollama-qwen2.5-coder", `Generate tests for: ${task}`, "tests"),
-      makeSubAgent("Security review", "engineering", "gemini-2.5-pro", `Review the refactor plan for security risks: ${task}`, "review")
+      makeSubAgent("Security review", "engineering", "gemini-2.0-pro", `Review the refactor plan for security risks: ${task}`, "review")
     ];
   }
 

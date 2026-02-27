@@ -101,12 +101,12 @@ export const buildProgram = () => {
     program.command("ask").description("Raw passthrough with deterministic routing"),
     { force: true }
   )
-    .argument("<task...>")
+    .argument("[task...]")
     .option("--deep")
     .action(async (taskParts, options) => {
       const result = await orchestrateTask({
         command: "ask",
-        task: collectTask(taskParts),
+        task: collectTask(taskParts || []),
         explicitBackend: options.backend,
         explicitModel: options.model,
         deep: Boolean(options.deep),
@@ -499,7 +499,7 @@ export const buildProgram = () => {
         byDepartment: Boolean(options.byDepartment),
         daily: Boolean(options.daily)
       });
-      print(Array.isArray(report) ? formatYaml(report) : formatJson(report));
+      print(formatYaml(report));
     });
 
   program.command("map").description("Update the Intent project map from the current workspace").action(async () => {

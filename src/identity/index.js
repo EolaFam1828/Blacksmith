@@ -5,9 +5,12 @@ const normalizeModelName = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g,
 
 const HUMAN_MODEL_ALIASES = {
   "claude code": "claude-code",
+  "claude haiku": "claude-3.5-haiku",
   "ollama": "ollama-qwen2.5-coder",
-  "gemini pro": "gemini-2.5-pro",
-  "gemini flash": "gemini-2.5-flash",
+  "gemini pro": "gemini-2.0-pro",
+  "gemini flash": "gemini-2.0-flash",
+  "gpt": "gpt-4.5",
+  "openai": "gpt-4.5",
   "codex": "codex-cli",
   "jules": "jules-cli"
 };
@@ -27,7 +30,7 @@ const selectFromDepartmentModels = (department, classification) => {
   }
 
   if (taskType === "diagnosis") {
-    return models.troubleshooting || models.complex || models.deep || null;
+    return models.complex || models.iac || models.troubleshooting || models.deep || null;
   }
 
   if (taskType === "deployment" || taskType === "provisioning") {

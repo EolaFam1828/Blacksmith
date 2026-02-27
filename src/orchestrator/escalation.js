@@ -2,11 +2,17 @@ import { runPrimaryAgent } from "../agents/runner.js";
 import { backendForModel, resolveModelId } from "../mcr/index.js";
 
 const ESCALATION_CHAIN = {
-  "ollama-qwen2.5-coder": "gemini-2.5-flash",
-  "ollama-deepseek-r1": "gemini-2.5-pro",
-  "gemini-2.5-flash": "gemini-2.5-pro",
+  "ollama-qwen2.5-coder": "gemini-2.0-flash",
+  "ollama-deepseek-r1": "o3-mini",
+  "ollama-llama-3.3-70b": "gemini-2.0-pro",
+  "gemini-2.0-flash": "gemini-2.0-pro",
+  "gpt-4o-mini": "gpt-4.5",
+  "o3-mini": "o3",
+  "claude-3.5-haiku": "claude-code",
   "codex-cli": "claude-code",
-  "gemini-2.5-pro": "claude-code"
+  "gemini-2.0-pro": "claude-code",
+  "gpt-4.5": "claude-code",
+  "o3": "claude-code"
 };
 
 const MIN_LENGTH_THRESHOLDS = {

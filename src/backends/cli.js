@@ -79,7 +79,7 @@ export const runGeminiPrompt = async (prompt, options = {}) => {
   const result = await runSpawn("gemini", args, { cwd: options.cwd });
   return {
     text: result.stdout,
-    model: options.model || config.backends?.gemini?.default_model || "gemini-2.5-pro",
+    model: options.model || config.backends?.gemini?.default_model || "gemini-2.0-pro",
     usage: {
       prompt_tokens: estimateTokens(prompt),
       completion_tokens: estimateTokens(result.stdout)

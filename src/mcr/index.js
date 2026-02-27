@@ -4,16 +4,26 @@ const BACKEND_ALIASES = {
   claude: "claude-code",
   claude_code: "claude-code",
   "claude code": "claude-code",
-  gemini: "gemini-2.5-pro",
-  gemini_pro: "gemini-2.5-pro",
-  "gemini pro": "gemini-2.5-pro",
-  gemini_flash: "gemini-2.5-flash",
-  "gemini flash": "gemini-2.5-flash",
+  haiku: "claude-3.5-haiku",
+  claude_haiku: "claude-3.5-haiku",
+  "claude haiku": "claude-3.5-haiku",
+  gemini: "gemini-2.0-pro",
+  gemini_pro: "gemini-2.0-pro",
+  "gemini pro": "gemini-2.0-pro",
+  gemini_flash: "gemini-2.0-flash",
+  "gemini flash": "gemini-2.0-flash",
   ollama: "ollama-qwen2.5-coder",
   ollama_reasoning: "ollama-deepseek-r1",
+  ollama_llama: "ollama-llama-3.3-70b",
   "github cli": "github-cli",
   codex: "codex-cli",
-  jules: "jules-cli"
+  jules: "jules-cli",
+  gpt: "gpt-4.5",
+  "gpt 4.5": "gpt-4.5",
+  openai: "gpt-4.5",
+  o3: "o3",
+  "o3 mini": "o3-mini",
+  "gpt 4o mini": "gpt-4o-mini"
 };
 
 export const getMcr = async () => loadMcr();
@@ -43,6 +53,10 @@ export const backendForModel = (modelId) => {
 
   if (modelId.startsWith("gemini")) {
     return "gemini";
+  }
+
+  if (modelId.startsWith("gpt-") || modelId.startsWith("o3")) {
+    return "openai";
   }
 
   if (modelId.startsWith("codex")) {

@@ -9,9 +9,9 @@ const makeStep = (name, model, prompt, kind, opts = {}) => ({
 });
 
 export const generateResearchSteps = (task) => [
-  makeStep("Scope research", "gemini-2.5-flash", `Define the scope and key questions for: ${task}`, "scope"),
-  makeStep("Gather information", "gemini-2.5-pro", `Gather comprehensive information about: ${task}`, "gather"),
-  makeStep("Synthesize findings", "gemini-2.5-pro", `Synthesize the gathered information into key findings for: ${task}`, "synthesize"),
+  makeStep("Scope research", "gemini-2.0-flash", `Define the scope and key questions for: ${task}`, "scope"),
+  makeStep("Gather information", "gemini-2.0-pro", `Gather comprehensive information about: ${task}`, "gather"),
+  makeStep("Synthesize findings", "gemini-2.0-pro", `Synthesize the gathered information into key findings for: ${task}`, "synthesize"),
   makeStep("Generate recommendations", "claude-code", `Based on the research, provide actionable recommendations for: ${task}`, "recommend")
 ];
 
@@ -19,7 +19,7 @@ export const generateCompareSteps = (task, options) => {
   const optionSteps = options.map((opt, i) =>
     makeStep(
       `Analyze option: ${opt}`,
-      "gemini-2.5-flash",
+      "gemini-2.0-flash",
       `Analyze "${opt}" as an option for: ${task}. List pros, cons, and key metrics.`,
       "option_analysis"
     )
@@ -29,7 +29,7 @@ export const generateCompareSteps = (task, options) => {
     ...optionSteps,
     makeStep(
       "Build comparison matrix",
-      "gemini-2.5-pro",
+      "gemini-2.0-pro",
       `Build a comparison matrix for all options analyzed. Task: ${task}`,
       "matrix"
     ),
@@ -43,7 +43,7 @@ export const generateCompareSteps = (task, options) => {
 };
 
 export const generateSummarizeSteps = (task) => [
-  makeStep("Summarize content", "gemini-2.5-flash", `Produce a structured summary of: ${task}. Use bullet points and key takeaways.`, "summary")
+  makeStep("Summarize content", "gemini-2.0-flash", `Produce a structured summary of: ${task}. Use bullet points and key takeaways.`, "summary")
 ];
 
 export const getResearchWorkflow = (command, task, options = {}) => {

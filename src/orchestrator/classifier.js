@@ -8,7 +8,9 @@ const COMPLEXITY_KEYWORDS = {
     "oauth",
     "system",
     "compare",
-    "research"
+    "research",
+    "kubernetes",
+    "infrastructure"
   ],
   medium: ["build", "debug", "review", "refactor", "endpoint", "api", "feature", "error"]
 };
@@ -69,7 +71,7 @@ export const classifyTask = ({ command, prompt, filePaths = [], deep = false }) 
   }
 
   if (["refactor", "research", "compare"].includes(command)) {
-    complexity = complexity === "low" ? "high" : complexity;
+    complexity = "high";
   }
 
   const taskTypeMap = {
