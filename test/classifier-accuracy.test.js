@@ -74,18 +74,18 @@ test("tier: ask with --deep is tier 2", () => {
   assert.equal(result.passthrough, false);
 });
 
-test("tier: build is always tier 2", () => {
-  const result = classifyTask({ command: "build", prompt: "hello world" });
+test("tier: build is tier 2 with sufficient prompt", () => {
+  const result = classifyTask({ command: "build", prompt: "a hello world app" });
   assert.equal(result.tier, 2);
 });
 
-test("tier: review is always tier 2", () => {
-  const result = classifyTask({ command: "review", prompt: "review this" });
+test("tier: review is tier 2 with sufficient prompt", () => {
+  const result = classifyTask({ command: "review", prompt: "review this code thoroughly" });
   assert.equal(result.tier, 2);
 });
 
-test("tier: research is always tier 2", () => {
-  const result = classifyTask({ command: "research", prompt: "compare things" });
+test("tier: research is tier 2 with sufficient prompt", () => {
+  const result = classifyTask({ command: "research", prompt: "compare things in detail" });
   assert.equal(result.tier, 2);
 });
 
@@ -397,6 +397,6 @@ test("route_reason: ask has passthrough reason", () => {
 });
 
 test("route_reason: build has orchestrated reason", () => {
-  const result = classifyTask({ command: "build", prompt: "build it" });
+  const result = classifyTask({ command: "build", prompt: "build a REST API" });
   assert.match(result.route_reason, /orchestrated/);
 });

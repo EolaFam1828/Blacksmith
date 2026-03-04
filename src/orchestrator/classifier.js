@@ -43,13 +43,19 @@ const detectDepartment = (lower, command) => {
   return "engineering";
 };
 
-const detectTier = ({ command, deep = false }) => {
+const detectTier = ({ command, prompt = "", deep = false }) => {
   if (command === "commit") {
     return { tier: 1, passthrough: true, reason: "deterministic commit-message workflow" };
   }
 
   if (command === "ask" && !deep) {
     return { tier: 1, passthrough: true, reason: "raw passthrough ask command" };
+  }
+
+  // Short-task guard: downgrade obviously incomplete tasks to Tier 1 (free)
+  const wordCount = prompt.trim().split(/\s+/).filter(Boolean).length;
+  if (wordCount < 3) {
+    return { tier: 1, passthrough: true, reason: "task too short — downgraded to passthrough" };
   }
 
   return { tier: 2, passthrough: false, reason: "requires orchestrated agent assembly" };
@@ -89,7 +95,7 @@ export const classifyTask = ({ command, prompt, filePaths = [], deep = false }) 
     provision: "provisioning"
   };
 
-  const tiering = detectTier({ command, deep });
+  const tiering = detectTier({ command, prompt, deep });
   const subAgentsNeeded =
     command === "refactor"
       ? 5
